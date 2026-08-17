@@ -119,7 +119,7 @@ class InvoiceService {
           billing.email ||
           support.email ||
           process.env.COMPANY_EMAIL ||
-          "support@anandavrinda.com",
+          "info@anandavrinda.com",
 
         phone:
           billing.phone ||

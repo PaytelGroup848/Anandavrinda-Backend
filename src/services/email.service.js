@@ -1,8 +1,8 @@
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
 
 // ─── Brand config ─────────────────────────────────────────────────────────────
-const BRAND_NAME = process.env.BRAND_NAME || 'Ananadvrinda';
-const BRAND_COLOR = process.env.BRAND_COLOR || '#0d9488'; // teal-600
+const BRAND_NAME = process.env.BRAND_NAME || "Ananadvrinda";
+const BRAND_COLOR = process.env.BRAND_COLOR || "#0d9488"; // teal-600
 const FROM_EMAIL = process.env.SMTP_FROM || process.env.SMTP_USER;
 
 class EmailService {
@@ -18,7 +18,9 @@ class EmailService {
     const pass = process.env.SMTP_PASS;
 
     if (!user || !pass) {
-      console.warn('  SMTP_USER / SMTP_PASS not set — emails will be logged only');
+      console.warn(
+        "  SMTP_USER / SMTP_PASS not set — emails will be logged only",
+      );
       this._logOnly = true;
       return;
     }
@@ -26,17 +28,17 @@ class EmailService {
     this._transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true',
+      secure: process.env.SMTP_SECURE === "true",
       auth: { user, pass },
     });
 
     // Verify connection on startup
     this._transporter.verify((err) => {
       if (err) {
-        console.error(' SMTP connection failed:', err.message);
+        console.error(" SMTP connection failed:", err.message);
         this._logOnly = true;
       } else {
-        console.log(' SMTP connected — emails ready');
+        console.log(" SMTP connected — emails ready");
         this._ready = true;
       }
     });
@@ -45,7 +47,7 @@ class EmailService {
   // ── Core send ───────────────────────────────────────────────────────────────
   async sendEmail({ to, subject, html }) {
     // Always log in dev
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       console.log(`\n ===== EMAIL =====`);
       console.log(`To:      ${to}`);
       console.log(`Subject: ${subject}`);
@@ -57,7 +59,7 @@ class EmailService {
 
     // If no SMTP configured, just log and return
     if (this._logOnly) {
-      return { messageId: 'log-only' };
+      return { messageId: "log-only" };
     }
 
     try {
@@ -72,7 +74,8 @@ class EmailService {
     } catch (err) {
       console.error(` Failed to send email to ${to}:`, err.message);
       // Don't crash the app — just warn
-      if (process.env.NODE_ENV !== 'production') return { messageId: 'failed-dev' };
+      if (process.env.NODE_ENV !== "production")
+        return { messageId: "failed-dev" };
       throw err;
     }
   }
@@ -188,7 +191,7 @@ For assistance, please contact the Anandavrinda Support Team.
 <div style="text-align:center;margin-top:28px;">
 
 <a
-href="mailto:support@anandavrinda.com"
+href="mailto:info@anandavrinda.com"
 style="
 background:#111827;
 color:white;
@@ -246,7 +249,7 @@ Contact Support
         Your email has been verified successfully. Your account is now active — start exploring our range of care products.
       </p>
       <div style="text-align:center;margin:24px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/products"
+        <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/products"
            style="display:inline-block;background:${BRAND_COLOR};color:#fff;font-weight:700;font-size:15px;padding:12px 28px;border-radius:8px;text-decoration:none;">
           Start Shopping
         </a>

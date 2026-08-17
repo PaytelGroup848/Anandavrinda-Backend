@@ -43,7 +43,7 @@ const addressSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { _id: true }
+  { _id: true },
 );
 
 const userSchema = new mongoose.Schema(
@@ -97,28 +97,35 @@ const userSchema = new mongoose.Schema(
       default: [],
       enum: [
         // Categories
-        'categories_view',
-        'categories_create',
-        'categories_delete',
-        
+        "categories_view",
+        "categories_create",
+        "categories_delete",
+
         // Products
-        'products_view',
-        'products_create',
-        'products_delete',
-        // support 
-        'support',
-        
+        "products_view",
+        "products_create",
+        "products_delete",
+        // support
+        "support",
+
         // Orders
-        'orders_view',
-        
+        "orders_view",
+
         // Customers
-        'customers_view',
+        "customers_view",
       ],
     },
 
     status: {
       type: String,
-      enum: ["active", "inactive", "suspended", "pending_verification","blocked","pending"],
+      enum: [
+        "active",
+        "inactive",
+        "suspended",
+        "pending_verification",
+        "blocked",
+        "pending",
+      ],
       default: "pending_verification",
     },
 
@@ -174,7 +181,7 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // ─── Indexes ─────────────────────────────────────────────
@@ -182,12 +189,8 @@ userSchema.index({ role: 1, status: 1 });
 userSchema.index({ phone: 1 });
 userSchema.index({ createdAt: -1 });
 
-// ─── ✅ FIXED: Password Hash - Without using 'next' ───────
-// Remove pre-save hook entirely - handle hashing in service
-// userSchema.pre('save', function(next) { ... }); // ❌ REMOVED
-
 // ─── Compare Password ────────────────────────────────────
-userSchema.methods.comparePassword = async function(enteredPassword) {
+userSchema.methods.comparePassword = async function (enteredPassword) {
   if (!this.password) {
     return false;
   }
@@ -195,7 +198,7 @@ userSchema.methods.comparePassword = async function(enteredPassword) {
 };
 
 // ─── Account Lock Check ──────────────────────────────────
-userSchema.methods.isAccountLocked = function() {
+userSchema.methods.isAccountLocked = function () {
   if (!this.accountLockedUntil) {
     return false;
   }
