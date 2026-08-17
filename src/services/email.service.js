@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 
 // ─── Brand config ─────────────────────────────────────────────────────────────
-const BRAND_NAME = process.env.BRAND_NAME || 'QubanHC';
+const BRAND_NAME = process.env.BRAND_NAME || 'Ananadvrinda';
 const BRAND_COLOR = process.env.BRAND_COLOR || '#0d9488'; // teal-600
 const FROM_EMAIL = process.env.SMTP_FROM || process.env.SMTP_USER;
 
@@ -179,7 +179,7 @@ If you did not request this password reset, someone may be trying to access your
 
 We recommend changing your password immediately if you suspect unauthorized activity.
 
-For assistance, please contact the QubanHC Support Team.
+For assistance, please contact the Anandavrinda Support Team.
 </p>
 
 </div>
@@ -188,7 +188,7 @@ For assistance, please contact the QubanHC Support Team.
 <div style="text-align:center;margin-top:28px;">
 
 <a
-href="mailto:support@qubanhc.com"
+href="mailto:support@anandavrinda.com"
 style="
 background:#111827;
 color:white;

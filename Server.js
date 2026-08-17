@@ -24,14 +24,13 @@ const app = express();
 // Connect to database
 mongoose
   .connect(
-    "mongodb://datacloude8_db_user:6fD3ao7TUd3EgiPP@ac-hhfjvfw-shard-00-00.d1c6qk4.mongodb.net:27017,ac-hhfjvfw-shard-00-01.d1c6qk4.mongodb.net:27017,ac-hhfjvfw-shard-00-02.d1c6qk4.mongodb.net:27017/?ssl=true&replicaSet=atlas-efmajk-shard-0&authSource=admin&appName=NewQubanHc",
+    "mongodb://datacloude8_db_user:A5xiKjk8yiFvpMJ4@ac-w8pxvc0-shard-00-00.rdougij.mongodb.net:27017,ac-w8pxvc0-shard-00-01.rdougij.mongodb.net:27017,ac-w8pxvc0-shard-00-02.rdougij.mongodb.net:27017/?ssl=true&replicaSet=atlas-842v6x-shard-0&authSource=admin&appName=anandavrinda",
   )
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.error("MongoDB Connection Error:", err));
 
 // ========== CORS CONFIGURATION ==========
 const allowedOrigins = [
-  "https://qubanhygienecare.com",
   "http://localhost:5173",
   "http://localhost:5174",
   "http://127.0.0.1:5173",

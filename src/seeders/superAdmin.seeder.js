@@ -15,22 +15,20 @@ async function seedSuperAdmin() {
     const MONGO_URI =
       process.env.MONGODB_URI ||
       process.env.MONGO_URI ||
-      "mongodb+srv://datacloude8_db_user:6fD3ao7TUd3EgiPP@newqubanhc.d1c6qk4.mongodb.net/?appName=NewQubanHc";
+      "mongodb://datacloude8_db_user:A5xiKjk8yiFvpMJ4@ac-w8pxvc0-shard-00-00.rdougij.mongodb.net:27017,ac-w8pxvc0-shard-00-01.rdougij.mongodb.net:27017,ac-w8pxvc0-shard-00-02.rdougij.mongodb.net:27017/?ssl=true&replicaSet=atlas-842v6x-shard-0&authSource=admin&appName=anandavrinda";
 
     const SUPER_ADMIN_EMAIL = (
-      process.env.SUPER_ADMIN_EMAIL || "superadmin@qubanhc.com"
+      process.env.SUPER_ADMIN_EMAIL || "admin@gmail.com"
     )
       .trim()
       .toLowerCase();
 
     const SUPER_ADMIN_PASSWORD =
-      process.env.SUPER_ADMIN_PASSWORD || "SuperAdmin@12345";
+      process.env.SUPER_ADMIN_PASSWORD || "Admin@123";
 
-    const SUPER_ADMIN_NAME =
-      process.env.SUPER_ADMIN_NAME || "Super Admin";
+    const SUPER_ADMIN_NAME = process.env.SUPER_ADMIN_NAME || "Super Admin";
 
-    const SUPER_ADMIN_PHONE =
-      process.env.SUPER_ADMIN_PHONE || "9999999999";
+    const SUPER_ADMIN_PHONE = process.env.SUPER_ADMIN_PHONE || "9999999999";
 
     await mongoose.connect(MONGO_URI);
     console.log(green("MongoDB Connected"));
@@ -103,7 +101,7 @@ async function seedSuperAdmin() {
         { _id: existingAdmin._id },
         {
           $set: payload,
-        }
+        },
       );
 
       adminId = existingAdmin._id;
@@ -127,7 +125,7 @@ async function seedSuperAdmin() {
 
     if (superAdminCount > 1) {
       console.log(
-        yellow(` Warning: DB me ${superAdminCount} super_admin users hain.`)
+        yellow(` Warning: DB me ${superAdminCount} super_admin users hain.`),
       );
     }
 
