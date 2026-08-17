@@ -4,6 +4,7 @@ const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
 const razorpayService = require('../services/razorpay.service');
 const invoiceService = require('../services/invoice.service');
+const orderService = require('../services/order.service');
 
 class PaymentController {
   async createRazorpayOrder(req, res, next) {
@@ -163,6 +164,12 @@ class PaymentController {
         await order.save();
 
         try {
+          await orderService.finalizePaidOrder(order._id);
+        } catch (finalizeErr) {
+          console.error('Order finalize (stock/cart) after Razorpay verify failed:', finalizeErr.message);
+        }
+
+        try {
           await invoiceService.generateInvoice(order._id, req.user._id, 'auto');
         } catch (invoiceError) {
           console.error(
@@ -258,6 +265,12 @@ class PaymentController {
           }
 
           await order.save();
+
+          try {
+            await orderService.finalizePaidOrder(order._id);
+          } catch (finalizeErr) {
+            console.error('Order finalize (stock/cart) from Razorpay webhook failed:', finalizeErr.message);
+          }
 
           try {
             await invoiceService.generateInvoice(order._id, null, 'auto');

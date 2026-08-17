@@ -183,26 +183,28 @@ const total = taxableAmount + shippingCharge + codExtraCharge + taxAmount;
       ],
     });
 
-    for (const item of orderItems) {
-      if (item.variant) {
-        await ProductVariant.findByIdAndUpdate(item.variant, {
-          $inc: { stock: -item.quantity },
-        });
-      } else {
-        await Product.findByIdAndUpdate(item.product, {
-          $inc: { stock: -item.quantity, totalSold: item.quantity },
-        });
+    if (paymentMethod === 'cod') {
+      for (const item of orderItems) {
+        if (item.variant) {
+          await ProductVariant.findByIdAndUpdate(item.variant, {
+            $inc: { stock: -item.quantity },
+          });
+        } else {
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { stock: -item.quantity, totalSold: item.quantity },
+          });
+        }
       }
-    }
 
-    cart.items = [];
-    cart.appliedCoupon = {
-      couponId: null,
-      code: null,
-      discountAmount: 0,
-    };
-    cart.lastActivityAt = new Date();
-    await cart.save();
+      cart.items = [];
+      cart.appliedCoupon = {
+        couponId: null,
+        code: null,
+        discountAmount: 0,
+      };
+      cart.lastActivityAt = new Date();
+      await cart.save();
+    }
 
     return order;
   }
@@ -429,6 +431,39 @@ async deleteOrder(orderId, userRole) {
 
     return order;
   }
+
+  async finalizePaidOrder(orderId) {
+    const order = await Order.findById(orderId);
+    if (!order) {
+      throw new ApiError(404, 'Order not found');
+    }
+
+    for (const item of order.items) {
+      if (item.variant) {
+        await ProductVariant.findByIdAndUpdate(item.variant, {
+          $inc: { stock: -item.quantity },
+        });
+      } else {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { stock: -item.quantity, totalSold: item.quantity },
+        });
+      }
+    }
+
+    const cart = await Cart.findOne({ user: order.user });
+    if (cart) {
+      cart.items = [];
+      cart.appliedCoupon = {
+        couponId: null,
+        code: null,
+        discountAmount: 0,
+      };
+      cart.lastActivityAt = new Date();
+      await cart.save();
+    }
+
+    return order;
+  }
 async markPaymentDoneTest(orderId, userId, userRole) {
   const query = { _id: orderId };
 
@@ -468,6 +503,13 @@ async markPaymentDoneTest(orderId, userId, userRole) {
   });
 
   await order.save();
+
+  // Stock deduct + cart clear (online payment ke liye ab tak nahi hua hoga)
+  try {
+    await this.finalizePaidOrder(order._id);
+  } catch (finalizeErr) {
+    console.error('markPaymentDoneTest finalizePaidOrder failed:', finalizeErr.message);
+  }
 
   // Auto-generate invoice after payment done
   await invoiceService.generateInvoice(order._id, userId, 'auto');

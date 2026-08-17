@@ -1,14 +1,14 @@
-const User = require('../models/User.model');
-const Order = require('../models/order.model');
-const bcrypt = require('bcryptjs');
-const ApiError = require('../utils/ApiError');
+const User = require("../models/User.model");
+const Order = require("../models/order.model");
+const bcrypt = require("bcryptjs");
+const ApiError = require("../utils/ApiError");
 
 class UserService {
   // Get user profile
   async getProfile(userId) {
-    const user = await User.findById(userId).select('-password');
+    const user = await User.findById(userId).select("-password");
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, "User not found");
     }
     return user;
   }
@@ -17,11 +17,11 @@ class UserService {
   async updateProfile(userId, updateData) {
     const user = await User.findById(userId);
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, "User not found");
     }
 
     // Allowed fields to update
-    const allowedUpdates = ['name', 'phone', 'avatar', 'preferences'];
+    const allowedUpdates = ["name", "phone", "avatar", "preferences"];
     const updates = {};
 
     for (const field of allowedUpdates) {
@@ -30,26 +30,25 @@ class UserService {
       }
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      updates,
-      { new: true, runValidators: true }
-    ).select('-password');
+    const updatedUser = await User.findByIdAndUpdate(userId, updates, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
 
     return updatedUser;
   }
 
   // Change password
   async changePassword(userId, currentPassword, newPassword) {
-    const user = await User.findById(userId).select('+password');
+    const user = await User.findById(userId).select("+password");
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, "User not found");
     }
 
     // Verify current password
     const isPasswordValid = await user.comparePassword(currentPassword);
     if (!isPasswordValid) {
-      throw new ApiError(401, 'Current password is incorrect');
+      throw new ApiError(401, "Current password is incorrect");
     }
 
     // Hash new password
@@ -65,9 +64,9 @@ class UserService {
 
   // Get user addresses
   async getAddresses(userId) {
-    const user = await User.findById(userId).select('addresses');
+    const user = await User.findById(userId).select("addresses");
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, "User not found");
     }
     return user.addresses || [];
   }
@@ -76,13 +75,13 @@ class UserService {
   async addAddress(userId, addressData) {
     const user = await User.findById(userId);
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, "User not found");
     }
 
     // If this is the first address or isDefault is true, set as default
     if (addressData.isDefault || user.addresses.length === 0) {
       // Remove default from all existing addresses
-      user.addresses.forEach(addr => {
+      user.addresses.forEach((addr) => {
         addr.isDefault = false;
       });
       addressData.isDefault = true;
@@ -98,17 +97,30 @@ class UserService {
   async updateAddress(userId, addressId, updateData) {
     const user = await User.findById(userId);
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, "User not found");
     }
 
     const address = user.addresses.id(addressId);
     if (!address) {
-      throw new ApiError(404, 'Address not found');
+      throw new ApiError(404, "Address not found");
     }
 
     // Update address fields
-    const allowedFields = ['label', 'fullName', 'phone', 'addressLine1', 'addressLine2', 'city', 'state', 'pincode', 'country', 'isDefault'];
-    
+    const allowedFields = [
+      "label",
+      "fullName",
+      "email",
+      "phone",
+      "addressLine1",
+      "addressLine2",
+      "city",
+      "state",
+      "pincode",
+      "country",
+      "landmark",
+      "isDefault",
+    ];
+
     for (const field of allowedFields) {
       if (updateData[field] !== undefined) {
         address[field] = updateData[field];
@@ -117,7 +129,7 @@ class UserService {
 
     // If setting this address as default, remove default from others
     if (updateData.isDefault) {
-      user.addresses.forEach(addr => {
+      user.addresses.forEach((addr) => {
         if (addr._id.toString() !== addressId) {
           addr.isDefault = false;
         }
@@ -132,12 +144,12 @@ class UserService {
   async deleteAddress(userId, addressId) {
     const user = await User.findById(userId);
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, "User not found");
     }
 
     const address = user.addresses.id(addressId);
     if (!address) {
-      throw new ApiError(404, 'Address not found');
+      throw new ApiError(404, "Address not found");
     }
 
     const wasDefault = address.isDefault;
@@ -155,13 +167,13 @@ class UserService {
   // Get user orders
   async getUserOrders(userId, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-    
+
     const [orders, total] = await Promise.all([
       Order.find({ user: userId })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Order.countDocuments({ user: userId })
+      Order.countDocuments({ user: userId }),
     ]);
 
     return {
@@ -170,16 +182,16 @@ class UserService {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     };
   }
 
   // Get user by ID (for admin)
   async getUserById(userId) {
-    const user = await User.findById(userId).select('-password');
+    const user = await User.findById(userId).select("-password");
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, "User not found");
     }
     return user;
   }
@@ -187,31 +199,31 @@ class UserService {
   // Get all users (for admin)
   async getAllUsers(page = 1, limit = 20, filters = {}) {
     const query = {};
-    
+
     if (filters.role) {
       query.role = filters.role;
     }
-    
+
     if (filters.status) {
       query.status = filters.status;
     }
-    
+
     if (filters.search) {
       query.$or = [
-        { name: { $regex: filters.search, $options: 'i' } },
-        { email: { $regex: filters.search, $options: 'i' } }
+        { name: { $regex: filters.search, $options: "i" } },
+        { email: { $regex: filters.search, $options: "i" } },
       ];
     }
 
     const skip = (page - 1) * limit;
-    
+
     const [users, total] = await Promise.all([
       User.find(query)
-        .select('-password')
+        .select("-password")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      User.countDocuments(query)
+      User.countDocuments(query),
     ]);
 
     return {
@@ -220,8 +232,8 @@ class UserService {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -229,18 +241,17 @@ class UserService {
   async deleteUser(userId, adminId) {
     const user = await User.findById(userId);
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, "User not found");
     }
-    
+
     // Prevent deleting super admin
-    if (user.role === 'super_admin') {
-      throw new ApiError(403, 'Cannot delete super admin');
+    if (user.role === "super_admin") {
+      throw new ApiError(403, "Cannot delete super admin");
     }
-  
-    
+
     // Delete user
     await user.deleteOne();
-    
+
     return true;
   }
 
@@ -248,17 +259,17 @@ class UserService {
   async updateUserRole(userId, newRole, adminId) {
     const user = await User.findById(userId);
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, "User not found");
     }
-    
+
     // Prevent changing super admin role
-    if (user.role === 'super_admin') {
-      throw new ApiError(403, 'Cannot change super admin role');
+    if (user.role === "super_admin") {
+      throw new ApiError(403, "Cannot change super admin role");
     }
-    
+
     user.role = newRole;
     await user.save();
-    
+
     return user;
   }
 
@@ -266,12 +277,12 @@ class UserService {
   async updateUserStatus(userId, status, adminId) {
     const user = await User.findById(userId);
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError(404, "User not found");
     }
-   
+
     user.status = status;
     await user.save();
-    
+
     return user;
   }
 
@@ -280,24 +291,24 @@ class UserService {
     const [totalOrders, totalSpent, wishlistCount] = await Promise.all([
       Order.countDocuments({ user: userId }),
       Order.aggregate([
-        { $match: { user: userId, status: 'delivered' } },
-        { $group: { _id: null, total: { $sum: "$total" } } }
+        { $match: { user: userId, status: "delivered" } },
+        { $group: { _id: null, total: { $sum: "$total" } } },
       ]),
       // Wishlist count - will implement when wishlist model is ready
-      Promise.resolve(0)
+      Promise.resolve(0),
     ]);
 
     return {
       totalOrders,
       totalSpent: totalSpent[0]?.total || 0,
       wishlistCount,
-      memberSince: (await User.findById(userId)).createdAt
+      memberSince: (await User.findById(userId)).createdAt,
     };
   }
 
   // Get user by email
   async getUserByEmail(email) {
-    const user = await User.findOne({ email }).select('-password');
+    const user = await User.findOne({ email }).select("-password");
     return user;
   }
 
@@ -311,7 +322,7 @@ class UserService {
   async updateLastLogin(userId, ipAddress) {
     await User.findByIdAndUpdate(userId, {
       lastLoginAt: new Date(),
-      lastLoginIp: ipAddress
+      lastLoginIp: ipAddress,
     });
   }
 }

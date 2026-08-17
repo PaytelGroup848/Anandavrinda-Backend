@@ -11,6 +11,12 @@ const addressSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    email: {
+      type: String,
+      default: null,
+      lowercase: true,
+      trim: true,
+    },
     phone: {
       type: String,
       required: true,
@@ -37,6 +43,10 @@ const addressSchema = new mongoose.Schema(
     country: {
       type: String,
       default: "India",
+    },
+    landmark: {
+      type: String,
+      default: null,
     },
     isDefault: {
       type: Boolean,
