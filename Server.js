@@ -59,7 +59,16 @@ app.use(
 app.options("/", cors());
 
 // ========== REQUEST BODY ==========
-app.use(express.json({ limit: "50mb" }));
+app.use(
+  express.json({
+    limit: "50mb",
+    verify: (req, res, buf) => {
+      if (Buffer.isBuffer(buf)) {
+        req.rawBody = buf.toString();
+      }
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
 

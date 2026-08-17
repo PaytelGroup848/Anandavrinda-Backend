@@ -2,11 +2,11 @@ const mongoose = require('mongoose');
 const Order = require('../models/order.model');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
-const cashfreeService = require('../services/cashfree.service');
+const razorpayService = require('../services/razorpay.service');
 const invoiceService = require('../services/invoice.service');
 
 class PaymentController {
-  async createCashfreeOrder(req, res, next) {
+  async createRazorpayOrder(req, res, next) {
     try {
       const { orderId } = req.body;
 
@@ -37,27 +37,29 @@ class PaymentController {
         throw new ApiError(400, 'Order amount must be at least ₹1');
       }
 
-      order.payment.method = 'cashfree';
+      order.payment.method = 'razorpay';
       await order.save();
 
-      const cashfreeOrder = await cashfreeService.createOrder(order);
+      const razorpayOrder = await razorpayService.createOrder(order);
 
-      order.payment.cashfreeOrderId = cashfreeOrder.order_id;
-      order.payment.cashfreePaymentSessionId =
-        cashfreeOrder.payment_session_id;
-      order.payment.cashfreeCfOrderId = cashfreeOrder.cf_order_id;
-      order.payment.cashfreeRawResponse = cashfreeOrder;
+      order.payment.razorpayOrderId = razorpayOrder.id;
+      order.payment.razorpayRawResponse = razorpayOrder;
 
       await order.save();
 
       res.status(200).json(
-        ApiResponse.success('Cashfree order created successfully', {
+        ApiResponse.success('Razorpay order created successfully', {
           order,
-          cashfree: {
-            orderId: cashfreeOrder.order_id,
-            cfOrderId: cashfreeOrder.cf_order_id,
-            paymentSessionId: cashfreeOrder.payment_session_id,
-            orderStatus: cashfreeOrder.order_status,
+          razorpay: {
+            orderId: razorpayOrder.id,
+            entity: razorpayOrder.entity,
+            amount: razorpayOrder.amount,
+            amountPaid: razorpayOrder.amount_paid,
+            amountDue: razorpayOrder.amount_due,
+            currency: razorpayOrder.currency,
+            receipt: razorpayOrder.receipt,
+            status: razorpayOrder.status,
+            keyId: process.env.RAZORPAY_KEY_ID,
           },
         })
       );
@@ -66,136 +68,74 @@ class PaymentController {
     }
   }
 
-  async verifyCashfreePayment(req, res, next) {
-  try {
-    const { orderId } = req.body;
-
-    if (!orderId) {
-      throw new ApiError(400, 'Order ID is required');
-    }
-
-    const orConditions = [
-      { orderId: String(orderId) },
-      { 'payment.cashfreeOrderId': String(orderId) },
-    ];
-
-    // Agar real MongoDB _id hai tabhi _id query me add karo
-    if (mongoose.Types.ObjectId.isValid(orderId)) {
-      orConditions.push({ _id: orderId });
-    }
-
-    const query = {
-      $or: orConditions,
-    };
-
-    if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
-      query.user = req.user._id;
-    }
-
-    const order = await Order.findOne(query);
-
-    if (!order) {
-      throw new ApiError(404, 'Order not found');
-    }
-
-    const cashfreeOrderId = order.payment.cashfreeOrderId || order.orderId;
-
-    const cashfreeOrder = await cashfreeService.getOrder(cashfreeOrderId);
-
-    order.payment.cashfreeRawResponse = cashfreeOrder;
-
-    if (cashfreeOrder.order_status === 'PAID') {
-      order.payment.status = 'paid';
-      order.payment.method = 'cashfree';
-      order.payment.transactionId = String(cashfreeOrder.cf_order_id || '');
-      order.payment.paymentId = String(cashfreeOrder.cf_order_id || '');
-      order.payment.paidAt = order.payment.paidAt || new Date();
-
-      order.status = 'confirmed';
-      order.confirmedAt = order.confirmedAt || new Date();
-
-      order.orderStatusHistory = Array.isArray(order.orderStatusHistory)
-        ? order.orderStatusHistory
-        : [];
-
-      const alreadyConfirmed = order.orderStatusHistory.some(
-        (item) =>
-          item.status === 'confirmed' &&
-          String(item.message || '').includes('Cashfree')
-      );
-
-      if (!alreadyConfirmed) {
-        order.orderStatusHistory.push({
-          status: 'confirmed',
-          message: 'Payment verified via Cashfree.',
-          updatedBy: req.user._id,
-          createdAt: new Date(),
-        });
-      }
-
-      await order.save();
-
-      try {
-        await invoiceService.generateInvoice(order._id, req.user._id, 'auto');
-      } catch (invoiceError) {
-        console.error(
-          'Invoice generation after Cashfree payment failed:',
-          invoiceError.message
-        );
-      }
-    } else if (cashfreeOrder.order_status === 'EXPIRED') {
-      order.payment.status = 'failed';
-      await order.save();
-    } else {
-      await order.save();
-    }
-
-    res.status(200).json(
-      ApiResponse.success('Cashfree payment verified successfully', {
-        order,
-        cashfree: cashfreeOrder,
-      })
-    );
-  } catch (error) {
-    next(error);
-  }
-}
-
-  async cashfreeWebhook(req, res) {
+  async verifyRazorpayPayment(req, res, next) {
     try {
-      const payload = req.body;
-      const cashfreeOrderId =
-        payload?.data?.order?.order_id ||
-        payload?.data?.order_id ||
-        payload?.order_id;
+      const { orderId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
 
-      if (!cashfreeOrderId) {
-        return res.status(200).json({ ok: true });
+      if (!orderId) {
+        throw new ApiError(400, 'Order ID is required');
       }
 
-      const order = await Order.findOne({
-        $or: [
-          { orderId: cashfreeOrderId },
-          { 'payment.cashfreeOrderId': cashfreeOrderId },
-        ],
-      });
+      const orConditions = [
+        { orderId: String(orderId) },
+        { 'payment.razorpayOrderId': String(orderId) },
+      ];
 
-      if (!order) {
-        return res.status(200).json({ ok: true });
+      if (mongoose.Types.ObjectId.isValid(orderId)) {
+        orConditions.push({ _id: orderId });
       }
 
-      const cashfreeOrder = await cashfreeService.getOrder(cashfreeOrderId);
-
-      order.payment.cashfreeRawResponse = {
-        webhook: payload,
-        verifiedOrder: cashfreeOrder,
+      const query = {
+        $or: orConditions,
       };
 
-      if (cashfreeOrder.order_status === 'PAID') {
+      if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
+        query.user = req.user._id;
+      }
+
+      const order = await Order.findOne(query);
+
+      if (!order) {
+        throw new ApiError(404, 'Order not found');
+      }
+
+      const razorpayOrderId = order.payment.razorpayOrderId || razorpay_order_id;
+
+      let isPaid = false;
+      let paymentDetails = {};
+
+      if (razorpay_payment_id && razorpay_order_id && razorpay_signature) {
+        const isValidSignature = razorpayService.verifyPaymentSignature({
+          razorpay_order_id,
+          razorpay_payment_id,
+          razorpay_signature,
+        });
+
+        if (isValidSignature) {
+          isPaid = true;
+          paymentDetails = {
+            paymentId: razorpay_payment_id,
+            signature: razorpay_signature,
+          };
+        } else {
+          throw new ApiError(400, 'Invalid payment signature');
+        }
+      } else if (razorpayOrderId) {
+        const razorpayOrder = await razorpayService.fetchOrder(razorpayOrderId);
+        order.payment.razorpayRawResponse = { ...order.payment.razorpayRawResponse, fetchedOrder: razorpayOrder };
+
+        if (razorpayOrder.status === 'paid' || razorpayOrder.amount_paid === razorpayOrder.amount) {
+          isPaid = true;
+          paymentDetails.paymentId = razorpayOrder.id;
+        }
+      }
+
+      if (isPaid) {
         order.payment.status = 'paid';
-        order.payment.method = 'cashfree';
-        order.payment.transactionId = String(cashfreeOrder.cf_order_id || '');
-        order.payment.paymentId = String(cashfreeOrder.cf_order_id || '');
+        order.payment.method = 'razorpay';
+        order.payment.transactionId = String(paymentDetails.paymentId || '');
+        order.payment.paymentId = String(paymentDetails.paymentId || '');
+        order.payment.signature = paymentDetails.signature || order.payment.signature;
         order.payment.paidAt = order.payment.paidAt || new Date();
 
         order.status = 'confirmed';
@@ -205,19 +145,28 @@ class PaymentController {
           ? order.orderStatusHistory
           : [];
 
-        order.orderStatusHistory.push({
-          status: 'confirmed',
-          message: 'Payment confirmed via Cashfree webhook.',
-          createdAt: new Date(),
-        });
+        const alreadyConfirmed = order.orderStatusHistory.some(
+          (item) =>
+            item.status === 'confirmed' &&
+            String(item.message || '').includes('Razorpay')
+        );
+
+        if (!alreadyConfirmed) {
+          order.orderStatusHistory.push({
+            status: 'confirmed',
+            message: 'Payment verified via Razorpay.',
+            updatedBy: req.user._id,
+            createdAt: new Date(),
+          });
+        }
 
         await order.save();
 
         try {
-          await invoiceService.generateInvoice(order._id, null, 'auto');
+          await invoiceService.generateInvoice(order._id, req.user._id, 'auto');
         } catch (invoiceError) {
           console.error(
-            'Invoice generation from webhook failed:',
+            'Invoice generation after Razorpay payment failed:',
             invoiceError.message
           );
         }
@@ -225,9 +174,110 @@ class PaymentController {
         await order.save();
       }
 
+      res.status(200).json(
+        ApiResponse.success('Razorpay payment verified successfully', {
+          order,
+          razorpay: paymentDetails,
+        })
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async razorpayWebhook(req, res) {
+    try {
+      const signature = req.headers['x-razorpay-signature'];
+      const payload = req.body;
+      const rawBody = req.rawBody;
+
+      if (!razorpayService.verifyWebhookSignature(payload, signature, rawBody)) {
+        return res.status(400).json({ ok: false, error: 'Invalid webhook signature' });
+      }
+
+      const event = payload.event;
+      const data = payload.payload;
+
+      let razorpayOrderId = null;
+      let razorpayPaymentId = null;
+
+      if (event === 'payment.captured' || event === 'payment.authorized') {
+        razorpayPaymentId = data?.payment?.entity?.id;
+        razorpayOrderId = data?.payment?.entity?.order_id;
+      } else if (event === 'order.paid') {
+        razorpayOrderId = data?.order?.entity?.id;
+        razorpayPaymentId = data?.payment?.entity?.id;
+      }
+
+      if (!razorpayOrderId && !razorpayPaymentId) {
+        return res.status(200).json({ ok: true });
+      }
+
+      const order = await Order.findOne({
+        $or: [
+          { 'payment.razorpayOrderId': razorpayOrderId },
+        ],
+      });
+
+      if (!order) {
+        return res.status(200).json({ ok: true });
+      }
+
+      order.payment.razorpayRawResponse = {
+        webhook: payload,
+        event,
+      };
+
+      if (event === 'payment.captured' || event === 'order.paid') {
+        if (order.payment.status !== 'paid') {
+          order.payment.status = 'paid';
+          order.payment.method = 'razorpay';
+          order.payment.transactionId = String(razorpayPaymentId || order.payment.transactionId || '');
+          order.payment.paymentId = String(razorpayPaymentId || order.payment.paymentId || '');
+          order.payment.paidAt = order.payment.paidAt || new Date();
+
+          order.status = 'confirmed';
+          order.confirmedAt = order.confirmedAt || new Date();
+
+          order.orderStatusHistory = Array.isArray(order.orderStatusHistory)
+            ? order.orderStatusHistory
+            : [];
+
+          const alreadyConfirmed = order.orderStatusHistory.some(
+            (item) =>
+              item.status === 'confirmed' &&
+              String(item.message || '').includes('Razorpay')
+          );
+
+          if (!alreadyConfirmed) {
+            order.orderStatusHistory.push({
+              status: 'confirmed',
+              message: 'Payment confirmed via Razorpay webhook.',
+              createdAt: new Date(),
+            });
+          }
+
+          await order.save();
+
+          try {
+            await invoiceService.generateInvoice(order._id, null, 'auto');
+          } catch (invoiceError) {
+            console.error(
+              'Invoice generation from webhook failed:',
+              invoiceError.message
+            );
+          }
+        }
+      } else if (event === 'payment.failed') {
+        order.payment.status = 'failed';
+        await order.save();
+      } else {
+        await order.save();
+      }
+
       return res.status(200).json({ ok: true });
     } catch (error) {
-      console.error('Cashfree webhook error:', error);
+      console.error('Razorpay webhook error:', error);
       return res.status(200).json({ ok: true });
     }
   }

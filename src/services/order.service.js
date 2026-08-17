@@ -30,7 +30,7 @@ class OrderService {
       throw new ApiError(400, 'Shipping address is required');
     }
 
-    const allowedPaymentMethods = ['cod', 'razorpay', 'stripe','cashfree'];
+    const allowedPaymentMethods = ['cod', 'razorpay', 'stripe'];
     if (!allowedPaymentMethods.includes(paymentMethod)) {
       throw new ApiError(400, 'Invalid payment method');
     }

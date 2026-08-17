@@ -5,20 +5,20 @@ const paymentController = require('../../controllers/payment.controller');
 const { protect } = require('../../middlewares/auth.middleware');
 
 router.post(
-  '/cashfree/create-order',
+  '/razorpay/create-order',
   protect,
-  paymentController.createCashfreeOrder
+  paymentController.createRazorpayOrder
 );
 
 router.post(
-  '/cashfree/verify',
+  '/razorpay/verify',
   protect,
-  paymentController.verifyCashfreePayment
+  paymentController.verifyRazorpayPayment
 );
 
 router.post(
-  '/cashfree/webhook',
-  paymentController.cashfreeWebhook
+  '/razorpay/webhook',
+  paymentController.razorpayWebhook
 );
 
 module.exports = router;

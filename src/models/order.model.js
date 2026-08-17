@@ -53,24 +53,13 @@ const paymentDetailsSchema = new mongoose.Schema({
   orderId: { type: String, default: null },
   signature: { type: String, default: null },
 
-  cashfreeOrderId: { type: String, default: null },
-  cashfreePaymentId: { type: String, default: null },
-
-  cashfreePaymentSessionId: {
-    type: String,
-    default: null,
-  },
-  cashfreeCfOrderId: {
-    type: String,
-    default: null,
-  },
-
-  cashfreeRawResponse: {
+  razorpayOrderId: { type: String, default: null },
+  razorpayPaymentId: { type: String, default: null },
+  razorpayRawResponse: {
     type: Object,
     default: null,
   },
-
-  cashfreeStatus: { type: String, default: null },
+  razorpayStatus: { type: String, default: null },
   paymentGatewayResponse: { type: Object, default: null },
   paymentEmailSent: { type: Boolean, default: false },
 
@@ -274,7 +263,7 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
-orderSchema.index({ "payment.cashfreeOrderId": 1 });
+orderSchema.index({ "payment.razorpayOrderId": 1 });
 orderSchema.index({ "payment.paymentId": 1 });
 
 orderSchema.index({ vendorId: 1, createdAt: -1 });

@@ -34,7 +34,8 @@
     "node": "^26.3.0",
     "node-cache": "^5.1.2",
     "nodemailer": "^9.0.1",
-    "pdfkit": "^0.19.1"
+    "pdfkit": "^0.19.1",
+    "razorpay": "^2.9.8"
   },
   "keywords": [],
   "devDependencies": {
