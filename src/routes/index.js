@@ -16,6 +16,7 @@ const uploadRoutes = require('./v1/upload.routes');
 const invoiceRoutes = require('./v1/invoice.route');
 const paymentRoutes = require('./v1/payment.routes');
 const supportRoutes = require('./v1/support.routes');
+const contactRoutes = require('./v1/contact.routes');
 
 // Register routes
 router.use('/auth', authRoutes);
@@ -30,6 +31,7 @@ router.use('/users', userRoutes);
 router.use('/orders', orderRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/support', supportRoutes);
+router.use('/contact', contactRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/invoices', invoiceRoutes);
 
