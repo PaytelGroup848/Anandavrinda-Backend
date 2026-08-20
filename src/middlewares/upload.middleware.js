@@ -11,8 +11,10 @@ const uploadDirs = {
 
 // Create all upload directories
 Object.values(uploadDirs).forEach((dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  const fullPath = path.join(process.cwd(), dir);
+  if (!fs.existsSync(fullPath)) {
+    fs.mkdirSync(fullPath, { recursive: true });
+    console.log(`Created directory: ${fullPath}`);
   }
 });
 
@@ -21,29 +23,51 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let uploadPath = uploadDirs.products; // default
 
-    // Determine upload path based on field name or custom parameter
-    if (file.fieldname === "image" || file.fieldname === "bannerImage") {
-      // Check if it's a banner upload
-      if (req.path.includes("/banners")) {
-        uploadPath = uploadDirs.banners;
-      }
+    console.log("=== UPLOAD DEBUG ===");
+    console.log("req.path:", req.path);
+    console.log("req.baseUrl:", req.baseUrl);
+    console.log("file.fieldname:", file.fieldname);
+
+    // Check if it's a banner upload - check the route path
+    const isBannerRoute =
+      req.path &&
+      (req.path.includes("/banners") ||
+        req.path.includes("banner") ||
+        req.baseUrl?.includes("/banners") ||
+        req.baseUrl?.includes("banner"));
+
+    if (isBannerRoute || file.fieldname === "bannerImage") {
+      uploadPath = uploadDirs.banners;
+      console.log("✅ Using banners directory");
     } else if (file.fieldname === "categoryImage") {
       uploadPath = uploadDirs.categories;
+      console.log("✅ Using categories directory");
+    } else if (
+      file.fieldname === "images" ||
+      file.fieldname === "productImage" ||
+      file.fieldname === "image"
+    ) {
+      uploadPath = uploadDirs.products;
+      console.log("✅ Using products directory");
     }
 
     // Ensure the specific directory exists
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
+    const fullPath = path.join(process.cwd(), uploadPath);
+    if (!fs.existsSync(fullPath)) {
+      fs.mkdirSync(fullPath, { recursive: true });
     }
 
-    cb(null, uploadPath);
+    console.log(`📁 Uploading file to: ${fullPath}`);
+    cb(null, fullPath);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
     const baseName = path.basename(file.originalname, ext);
     const sanitizedName = baseName.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
-    cb(null, `${sanitizedName}-${uniqueSuffix}${ext}`);
+    const filename = `${sanitizedName}-${uniqueSuffix}${ext}`;
+    console.log(`📄 Generated filename: ${filename}`);
+    cb(null, filename);
   },
 });
 
@@ -60,7 +84,7 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only images are allowed (JPEG, PNG, WEBP, GIF, SVG)"), false);
+    cb(new Error(`Only images are allowed. Received: ${file.mimetype}`), false);
   }
 };
 
