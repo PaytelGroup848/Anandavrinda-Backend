@@ -10,7 +10,7 @@ router.get("/featured", blogController.getFeaturedBlogs);
 
 router.get("/:slug", blogController.getBlogBySlug);
 
-router.use(protect);
+// router.use(protect);
 router.use(restrictTo("super_admin", "sub_admin"));
 
 router.get("/", blogController.getAllBlogs);
