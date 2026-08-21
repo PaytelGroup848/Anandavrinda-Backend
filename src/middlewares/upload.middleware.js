@@ -7,6 +7,7 @@ const uploadDirs = {
   products: process.env.UPLOAD_PATH || "./uploads/products",
   banners: process.env.BANNER_UPLOAD_PATH || "./uploads/banners",
   categories: process.env.CATEGORY_UPLOAD_PATH || "./uploads/categories",
+  blogs: process.env.BLOG_UPLOAD_PATH || "./uploads/blogs", // Add this
 };
 
 // Create all upload directories
@@ -28,6 +29,17 @@ const storage = multer.diskStorage({
     console.log("req.baseUrl:", req.baseUrl);
     console.log("file.fieldname:", file.fieldname);
 
+    if (req.path && req.path.includes("/blogs")) {
+      uploadPath = uploadDirs.blogs;
+      console.log(" Using blogs directory");
+    } else if (
+      file.fieldname === "blogImage" ||
+      file.fieldname === "featuredImage"
+    ) {
+      uploadPath = uploadDirs.blogs;
+      console.log(" Using blogs directory");
+    }
+
     // Check if it's a banner upload - check the route path
     const isBannerRoute =
       req.path &&
@@ -38,10 +50,10 @@ const storage = multer.diskStorage({
 
     if (isBannerRoute || file.fieldname === "bannerImage") {
       uploadPath = uploadDirs.banners;
-      console.log("✅ Using banners directory");
+      console.log("Using banners directory");
     } else if (file.fieldname === "categoryImage") {
       uploadPath = uploadDirs.categories;
-      console.log("✅ Using categories directory");
+      console.log(" Using categories directory");
     } else if (
       file.fieldname === "images" ||
       file.fieldname === "productImage" ||
@@ -102,7 +114,7 @@ const uploadMultiple = upload.array("images", 5);
 
 // Single image upload
 const uploadSingle = upload.single("image");
-
+const uploadBlogImage = upload.single("featuredImage");
 // Banner image upload (using 'image' field)
 const uploadBannerImage = upload.single("image");
 
@@ -111,4 +123,5 @@ module.exports = {
   uploadMultiple,
   uploadSingle,
   uploadBannerImage,
+  uploadBlogImage,
 };

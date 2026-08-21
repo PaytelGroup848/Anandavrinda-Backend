@@ -18,7 +18,7 @@ const paymentRoutes = require("./v1/payment.routes");
 const supportRoutes = require("./v1/support.routes");
 const contactRoutes = require("./v1/contact.routes");
 const bannerRoutes = require("./v1/banner.routes");
-
+const blogRoutes = require("./v1/blog.routes");
 // Register routes
 router.use("/auth", authRoutes);
 router.use("/categories", categoryRoutes);
@@ -36,6 +36,7 @@ router.use("/contact", contactRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/invoices", invoiceRoutes);
 router.use("/banners", bannerRoutes);
+router.use("/blogs", blogRoutes);
 // Health check
 router.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", version: "1.0.0" });
